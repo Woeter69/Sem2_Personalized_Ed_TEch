@@ -3,7 +3,11 @@ import axios from 'axios';
 
 interface User {
   username: string;
-  learning_style?: string;
+  profile?: any;
+  chapter_mastery?: any[];
+  interests?: any;
+  learning_dna?: any;
+  topic_progress?: any[];
 }
 
 interface AuthContextType {

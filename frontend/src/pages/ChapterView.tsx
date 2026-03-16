@@ -2,8 +2,9 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Youtube, CheckCircle, BookOpen, Lightbulb, Send, Bot, Maximize2, Minimize2, Play, Info, X } from 'lucide-react';
+import { ArrowLeft, CheckCircle, BookOpen, Lightbulb, Send, Bot, Maximize2, Minimize2, Info, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const API_URL = "http://localhost:8000";
 
@@ -15,12 +16,10 @@ const ChapterView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState<any[]>([]);
   
-  // Topic Info Modal State
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [topicInfo, setTopicInfo] = useState<string>('');
   const [loadingTopic, setLoadingTopic] = useState(false);
 
-  // Chat State
   const [chatHistory, setChatHistory] = useState<{role: string, content: string}[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -97,7 +96,7 @@ const ChapterView: React.FC = () => {
   };
 
   const handleTopicToggle = async (e: React.MouseEvent, topic: string, isDone: boolean) => {
-    e.stopPropagation(); // Prevent opening explanation when clicking checkbox
+    e.stopPropagation();
     const token = localStorage.getItem('token');
     const topic_key = `Maths_${chapterName}_${topic}`;
     try {
@@ -126,47 +125,52 @@ const ChapterView: React.FC = () => {
       </button>
 
       <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>{chapterName}</h1>
-      <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2rem' }}>Maths Mentor session for <b>{user?.profile?.full_name}</b></p>
+      <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2rem' }}>Personalized session for <b>{user?.profile?.full_name}</b></p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '2rem' }}>
         <div className="main-content">
           
-          {/* Featured Video Card */}
-          <div className="card" style={{ padding: '0', overflow: 'hidden', border: '1px solid #818cf8', marginBottom: '2rem' }}>
-            <div style={{ position: 'relative' }}>
-              <img src={data.video?.thumbnail} alt={data.video?.title} style={{ width: '100%', height: '300px', objectFit: 'cover' }} />
-              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <a href={data.video?.url} target="_blank" rel="noreferrer" style={{ background: 'rgba(239, 68, 68, 0.9)', borderRadius: '50%', padding: '20px', color: 'white' }}>
-                  <Play size={40} fill="white" />
-                </a>
+          {/* VIDEO EMBED */}
+          {data.video?.id ? (
+            <div className="card" style={{ padding: '0', overflow: 'hidden', border: '1px solid #818cf8', marginBottom: '2rem' }}>
+              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+                <iframe 
+                  src={`https://www.youtube.com/embed/${data.video.id}`}
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title={data.video.title}
+                ></iframe>
+              </div>
+              <div style={{ padding: '1.2rem' }}>
+                <h3 style={{ margin: '0 0 5px 0' }}>{data.video.title}</h3>
+                <p style={{ color: '#818cf8', margin: '0' }}>{data.video.channel}</p>
               </div>
             </div>
-            <div style={{ padding: '1.2rem' }}>
-              <h3 style={{ margin: '0 0 5px 0' }}>{data.video?.title}</h3>
-              <p style={{ color: '#818cf8', margin: '0' }}>{data.video?.channel}</p>
+          ) : (
+            <div className="card" style={{ padding: '1rem', border: '1px solid #ef4444', marginBottom: '2rem' }}>
+              <h3 style={{ color: '#ef4444', margin: '0 0 0.5rem 0' }}>Video Not Available</h3>
+              <p>Error: {data.video?.title || "Unknown error"}. Please check your YOUTUBE_API_KEY and the console for details.</p>
+              <a href={data.video?.url} target="_blank" rel="noreferrer" className="btn" style={{ background: '#334155', width: 'fit-content' }}>Search on YouTube</a>
             </div>
-          </div>
+          )}
 
-          {/* Personalized Lesson Section */}
-          <div className="card" style={{ minHeight: '400px' }}>
+          <div className="card">
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#818cf8' }}>
-              <Lightbulb /> Chapter Master Class
+              <Lightbulb /> Master Class Notes
             </h3>
             <div className="markdown-content" style={{ marginTop: '1.5rem' }}>
-              <ReactMarkdown>{data.ai_content}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.ai_content}</ReactMarkdown>
             </div>
           </div>
         </div>
 
-        {/* SIDEBAR */}
         <div className="sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          
           <div className="card">
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#818cf8' }}>
-              <BookOpen /> Topics Checklist
+              <BookOpen /> Topics
             </h3>
-            <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '1rem' }}>Click a topic to learn more with examples!</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
               {data.topics.map((topic: string) => (
                 <div 
                   key={topic} 
@@ -175,20 +179,14 @@ const ChapterView: React.FC = () => {
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
                     padding: '0.75rem 1rem', borderRadius: '8px', cursor: 'pointer',
                     background: isCompleted(topic) ? 'rgba(34, 197, 94, 0.05)' : '#0f172a', 
-                    border: `1px solid ${isCompleted(topic) ? '#22c55e' : '#334155'}`,
-                    transition: 'transform 0.2s'
+                    border: `1px solid ${isCompleted(topic) ? '#22c55e' : '#334155'}`
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateX(5px)'}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateX(0)'}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <Info size={16} color="#818cf8" />
                     <span style={{ fontSize: '0.95rem' }}>{topic}</span>
                   </div>
-                  <button 
-                    onClick={(e) => handleTopicToggle(e, topic, !isCompleted(topic))} 
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: isCompleted(topic) ? '#22c55e' : '#94a3b8' }}
-                  >
+                  <button onClick={(e) => handleTopicToggle(e, topic, !isCompleted(topic))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: isCompleted(topic) ? '#22c55e' : '#94a3b8' }}>
                     <CheckCircle size={22} fill={isCompleted(topic) ? 'currentColor' : 'none'} />
                   </button>
                 </div>
@@ -196,7 +194,6 @@ const ChapterView: React.FC = () => {
             </div>
           </div>
 
-          {/* Topic Detail View (Appears when a topic is clicked) */}
           {selectedTopic && (
             <div className="card fade-in" style={{ border: '1px solid #818cf8', background: '#1e293b' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -204,32 +201,29 @@ const ChapterView: React.FC = () => {
                 <button onClick={() => setSelectedTopic(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={20} /></button>
               </div>
               {loadingTopic ? (
-                <p>Generating specific explanation and examples...</p>
+                <p>Loading...</p>
               ) : (
                 <div className="markdown-content" style={{ fontSize: '0.95rem' }}>
-                  <ReactMarkdown>{topicInfo}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{topicInfo}</ReactMarkdown>
                 </div>
               )}
             </div>
           )}
 
-          {/* AI ASSISTANT */}
           <div className={`chapter-ai-chat ${isMaximized ? 'maximized' : ''}`} style={isMaximized ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, background: '#0b0f19', padding: '2rem', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' } : { display: 'flex', flexDirection: 'column' }}>
             <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><Bot color="#818cf8" /> Doubt Solver</div>
+              <Bot color="#818cf8" /> Chat
               <button onClick={() => setIsMaximized(!isMaximized)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#818cf8' }}>{isMaximized ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</button>
             </h3>
             <div className="card" style={{ height: isMaximized ? 'calc(100% - 60px)' : '400px', display: 'flex', flexDirection: 'column', padding: '0', overflow: 'hidden', border: '1px solid #334155' }}>
               <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: '#0f172a' }}>
-                {chatHistory.length === 0 && <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem' }}>Ask anything about {chapterName}!</p>}
                 {chatHistory.map((msg, i) => (
                   <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%' }}>
                     <div style={{ backgroundColor: msg.role === 'user' ? '#4f46e5' : '#1e293b', padding: '0.75rem', borderRadius: '8px', fontSize: '0.9rem' }}>
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                     </div>
                   </div>
                 ))}
-                {isTyping && <div style={{ alignSelf: 'flex-start', color: '#94a3b8', fontSize: '0.8rem' }}>Thinking...</div>}
                 <div ref={chatEndRef} />
               </div>
               <form onSubmit={handleChat} style={{ padding: '0.75rem', background: '#1e293b', display: 'flex', gap: '0.5rem' }}>

@@ -5,6 +5,7 @@ import Assessment from './pages/Assessment';
 import Dashboard from './pages/Dashboard';
 import Subject from './pages/Subject';
 import ChapterView from './pages/ChapterView';
+import ProgressTracker from './pages/ProgressTracker';
 import './App.css';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -24,7 +25,8 @@ function App() {
             <Route path="/assessment" element={<ProtectedRoute><Assessment /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/subject/:subjectName" element={<ProtectedRoute><Subject /></ProtectedRoute>} />
-            <Route path="/chapter/:chapterName" element={<ProtectedRoute><ChapterView /></ProtectedRoute>} />
+            <Route path="/chapter/:chapterName" element={<ProtectedRoute><ChapterView /></ProtectedRoute>}  />
+            <Route path="/tracker" element={<ProtectedRoute><ProgressTracker /></ProtectedRoute>} />
           </Routes>
         </div>
       </Router>

@@ -11,7 +11,8 @@ const Dashboard: React.FC = () => {
   const [syllabus, setSyllabus] = useState<any>(null);
   const [progress, setProgress] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
-  const [loadingRecs, setLoadingRecs] = useState(false);
+  const [loadingCoreData, setLoadingCoreData] = useState(true); // New state for core data
+  const [loadingRecs, setLoadingRecs] = useState(false); // Existing state for recommendations
   
   // Chat State
   const [chatHistory, setChatHistory] = useState<{role: string, content: string}[]>([]);
@@ -33,7 +34,7 @@ const Dashboard: React.FC = () => {
   }, [chatHistory]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCoreData = async () => {
       const token = localStorage.getItem('token');
       try {
         const [syllabusRes, progressRes] = await Promise.all([
@@ -42,21 +43,38 @@ const Dashboard: React.FC = () => {
         ]);
         setSyllabus(syllabusRes.data);
         setProgress(progressRes.data);
+      } catch (err) {
+        console.error("Error fetching core dashboard data:", err);
+      } finally {
+        setLoadingCoreData(false);
+      }
+    };
+    fetchCoreData();
+  }, []);
 
-        // Fetch AI Recommendations
-        setLoadingRecs(true);
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      if (!user) return; // Only fetch if user data is available
+      const token = localStorage.getItem('token');
+      setLoadingRecs(true);
+      try {
         const recsRes = await axios.get(`${API_URL}/recommendations/`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setRecommendations(recsRes.data);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching AI recommendations:", err);
+        setRecommendations([]); // Clear recommendations if error occurs
       } finally {
         setLoadingRecs(false);
       }
     };
-    fetchData();
-  }, []);
+    // Fetch recommendations once core data is loaded and user exists
+    if (!loadingCoreData && user) {
+        fetchRecommendations();
+    }
+  }, [loadingCoreData, user]); // Re-run when core data is loaded or user changes
+
 
   const handleChat = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,6 +108,15 @@ const Dashboard: React.FC = () => {
     return totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
   };
 
+  if (loadingCoreData) {
+    return (
+      <div className="fade-in" style={{ textAlign: 'center', marginTop: '5rem' }}>
+        <h2>Loading your personalized dashboard...</h2>
+        <p>This should only take a moment.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="fade-in" style={{ position: 'relative', minHeight: '100vh' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -112,6 +139,30 @@ const Dashboard: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: showChat ? '1.5fr 1fr' : '1fr', gap: '2rem', marginTop: '1rem' }}>
         <div className="left-column">
           <div className="quote-box">"The secret of getting ahead is getting started."</div>
+          
+          <div className="card" style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', border: '1px solid #334155' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0, color: '#818cf8' }}>🚀 Quick Stats</h3>
+              <button className="btn" style={{ padding: '5px 10px', fontSize: '0.8rem' }} onClick={() => navigate('/tracker')}>
+                Full Tracker <Maximize2 size={14} style={{ marginLeft: '5px' }} />
+              </button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', textAlign: 'center' }}>
+              <div style={{ padding: '0.5rem', background: 'rgba(129, 140, 248, 0.05)', borderRadius: '8px' }}>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Total Math Progress</p>
+                <h4 style={{ margin: '5px 0 0 0', color: '#818cf8', fontSize: '1.2rem' }}>{calculateProgress('Maths')}%</h4>
+              </div>
+              <div style={{ padding: '0.5rem', background: 'rgba(34, 197, 94, 0.05)', borderRadius: '8px' }}>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Topics Done</p>
+                <h4 style={{ margin: '5px 0 0 0', color: '#22c55e', fontSize: '1.2rem' }}>{progress.filter(p => p.is_completed).length}</h4>
+              </div>
+              <div style={{ padding: '0.5rem', background: 'rgba(234, 179, 8, 0.05)', borderRadius: '8px' }}>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Weak Areas</p>
+                <h4 style={{ margin: '5px 0 0 0', color: '#eab308', fontSize: '1.2rem' }}>{user?.chapter_mastery?.filter((m: any) => m.self_rating <= 2).length || 0}</h4>
+              </div>
+            </div>
+          </div>
+
           <h3>Your Subjects</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
             {syllabus && Object.keys(syllabus).map(subject => {
@@ -140,32 +191,42 @@ const Dashboard: React.FC = () => {
               </h3>
               <div className="card" style={{ border: '1px solid #818cf8', maxHeight: '450px', overflowY: 'auto', padding: '1rem' }}>
                 {loadingRecs ? (
-                  <p>Curating your learning path...</p>
+                  <p>Curating your learning path with AI magic...</p>
                 ) : recommendations.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     {recommendations.map((rec, i) => (
                       <div key={i} className="video-recommendation" style={{ borderRadius: '8px', overflow: 'hidden', background: '#0f172a', border: '1px solid #334155' }}>
-                        {rec.thumbnail && (
-                          <div style={{ position: 'relative' }}>
-                            <img src={rec.thumbnail} alt={rec.title} style={{ width: '100%', display: 'block' }} />
-                            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'rgba(0,0,0,0.6)', borderRadius: '50%', padding: '10px' }}>
-                              <Play fill="white" size={24} />
-                            </div>
+                        {rec.id ? (
+                          <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+                            <iframe 
+                              src={`https://www.youtube.com/embed/${rec.id}`}
+                              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              title={rec.title}
+                            ></iframe>
+                          </div>
+                        ) : (
+                          <div style={{ textAlign: 'center', padding: '1rem', background: '#334155', color: '#ef4444' }}>
+                            <p>{rec.title || rec.error}</p>
+                            <p>Check console for YouTube API errors. Is your YOUTUBE_API_KEY correct?</p>
                           </div>
                         )}
                         <div style={{ padding: '1rem' }}>
                           <h4 style={{ margin: '0 0 5px 0', fontSize: '0.95rem', lineHeight: '1.4' }}>{rec.title}</h4>
-                          <p style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: '#818cf8' }}>{rec.channel}</p>
+                          <p style={{ margin: '0 0 8px 0', color: '#818cf8' }}>{rec.channel}</p>
                           <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>"{rec.reason}"</p>
-                          <a href={rec.url} target="_blank" rel="noreferrer" className="btn" style={{ padding: '6px 12px', fontSize: '0.8rem', width: '100%', textAlign: 'center' }}>
-                            Watch Now
-                          </a>
+                          {rec.url && (
+                            <a href={rec.url} target="_blank" rel="noreferrer" className="btn" style={{ padding: '6px 12px', fontSize: '0.8rem', width: '100%', textAlign: 'center' }}>
+                              Watch Now <ExternalLink size={14} style={{ marginLeft: '5px' }} />
+                            </a>
+                          )}
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p>Complete profile to unlock AI power!</p>
+                  <p>Complete profile to unlock AI power! Check YOUTUBE_API_KEY if videos aren't loading.</p>
                 )}
               </div>
             </div>
