@@ -22,7 +22,7 @@ const ChapterView: React.FC = () => {
 
   const [chatHistory, setChatHistory] = useState<{role: string, content: string}[]>([]);
   const [chatInput, setChatInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [, setIsTyping] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
