@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { ChevronRight, ChevronLeft, Save } from 'lucide-react';
 
-const API_URL = "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? "http://localhost:8000" : "");
 
 const MATH_CHAPTERS = [
   "Real Numbers", "Polynomials", "Linear Equations", "Quadratic Equations", 

@@ -6,7 +6,7 @@ import { ArrowLeft, CheckCircle, BookOpen, Lightbulb, Send, Bot, Maximize2, Mini
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-const API_URL = "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? "http://localhost:8000" : "");
 
 const ChapterView: React.FC = () => {
   const { chapterName } = useParams();

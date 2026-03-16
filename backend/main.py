@@ -10,6 +10,9 @@ from typing import List, Optional
 from . import models, schemas, database, ai_service, youtube_service
 from .database import engine, get_db
 import asyncio
+import os
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 # --- Cache Setup ---
 response_cache = {}
@@ -232,3 +235,12 @@ async def chat(prompt: str, subject: str, current_user: models.User = Depends(ge
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+# Render/Production Support: Serve built frontend
+frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+if os.path.exists(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="static")
+    
+    @app.exception_handler(404)
+    async def not_found_exception_handler(request, exc):
+        return FileResponse(os.path.join(frontend_path, "index.html"))

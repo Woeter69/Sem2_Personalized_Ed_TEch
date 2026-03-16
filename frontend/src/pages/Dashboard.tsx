@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { Sparkles, ExternalLink, Send, Bot, Maximize2, Minimize2, MessageSquare, X, Play } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
-const API_URL = "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? "http://localhost:8000" : "");
 
 const Dashboard: React.FC = () => {
   const [syllabus, setSyllabus] = useState<any>(null);

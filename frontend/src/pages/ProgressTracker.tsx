@@ -9,7 +9,7 @@ import {
 import { motion } from 'framer-motion';
 import { ArrowLeft, TrendingUp, Award, Target } from 'lucide-react';
 
-const API_URL = "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? "http://localhost:8000" : "");
 
 const ProgressTracker: React.FC = () => {
   const { user } = useAuth();
