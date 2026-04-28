@@ -7,4 +7,3 @@ python-multipart
 pydantic
 google-genai
 python-dotenv
-google-api-python-client

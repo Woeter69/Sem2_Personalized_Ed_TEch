@@ -207,9 +207,8 @@ const Dashboard: React.FC = () => {
                             ></iframe>
                           </div>
                         ) : (
-                          <div style={{ textAlign: 'center', padding: '1rem', background: '#334155', color: '#ef4444' }}>
-                            <p>{rec.title || rec.error}</p>
-                            <p>Check console for YouTube API errors. Is your YOUTUBE_API_KEY correct?</p>
+                          <div style={{ textAlign: 'center', padding: '1rem', background: '#334155', color: '#818cf8' }}>
+                            <p style={{ margin: 0 }}>{rec.title || "Video Recommendation"}</p>
                           </div>
                         )}
                         <div style={{ padding: '1rem' }}>
@@ -226,7 +225,7 @@ const Dashboard: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <p>Complete profile to unlock AI power! Check YOUTUBE_API_KEY if videos aren't loading.</p>
+                  <p>Complete your profile to unlock personalized AI recommendations!</p>
                 )}
               </div>
             </div>

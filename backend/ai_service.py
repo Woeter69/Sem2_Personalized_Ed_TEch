@@ -9,7 +9,7 @@ load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 if api_key:
     client = genai.Client(api_key=api_key)
-    MODEL_ID = "gemini-2.5-flash"  # Flash is stable and fast
+    MODEL_ID = "gemini-2.5-flash"
 else:
     client = None
 
@@ -25,27 +25,88 @@ async def get_personalized_recommendations(user_profile, interests, weak_chapter
         return [{"title": "API Key Missing", "url": "#", "reason": "Please set GEMINI_API_KEY in .env"}]
 
     prompt = f"""
-    You are an expert educational consultant for a 10th-grade CBSE NCERT student.
+    You are an expert educational consultant.
     
     Student Profile:
     - Interests: {interests}
     - Weak Chapters: {weak_chapters}
     - Favorite Teachers/Channels: {favorite_teachers}
     - Learning Speed: {learning_speed}
-    - Dream Career: {user_profile.dream_career if user_profile else 'Professional'}
     
-    Based on this, generate 5-6 highly specific YouTube search queries that would help this student.
+    Task: Find 5-6 highly specific YouTube videos that would help this student for Class 10 NCERT Maths.
+    For each video, provide:
+    1. A clear, catchy title.
+    2. The ACTUAL YouTube URL (must be a valid watch link).
+    3. A brief reason why it fits the student's learning style.
+
     Return ONLY a raw JSON list of objects:
     [{{"title": "...", "url": "...", "reason": "..."}}]
     """
 
     try:
-        response = await client.aio.models.generate_content(model=MODEL_ID, contents=prompt)
+        # We can use Google Search grounding if available to get accurate links
+        from google.genai import types
+        config = types.GenerateContentConfig(
+            tools=[types.Tool(google_search=types.GoogleSearch())] 
+        )
+        response = await client.aio.models.generate_content(
+            model=MODEL_ID, 
+            contents=prompt,
+            config=config
+        )
         text = clean_markdown(response.text)
         return json.loads(text)
     except Exception as e:
         print(f"Gemini Recommendation Error: {e}")
-        return [{"title": "Check NCERT Solutions", "url": "https://www.youtube.com/results?search_query=ncert+class+10+maths", "reason": "Fallback: A great starting point for all students."}]
+        # Fallback to a query-style response if grounding fails or JSON is malformed
+        return [{"title": "NCERT Solutions", "url": "https://www.youtube.com/results?search_query=ncert+class+10+maths", "reason": "A great starting point for all students."}]
+
+async def get_video_recommendation(chapter_name, topic_name=None, preferred_teachers="General"):
+    if not client: return None
+    
+    subject = f"chapter {chapter_name}"
+    if topic_name:
+        subject += f", topic {topic_name}"
+        
+    prompt = f"""
+    Find the single best YouTube video for a Class 10 student learning {subject}.
+    Preferred teaching style/teachers: {preferred_teachers}.
+    
+    Provide the video details in JSON format:
+    {{
+        "title": "Video Title",
+        "url": "YouTube URL",
+        "channel": "Channel Name",
+        "thumbnail": "High-quality thumbnail URL (if known, else use https://img.youtube.com/vi/VIDEO_ID/hqdefault.jpg)"
+    }}
+    """
+    
+    try:
+        from google.genai import types
+        config = types.GenerateContentConfig(
+            tools=[types.Tool(google_search=types.GoogleSearch())]
+        )
+        response = await client.aio.models.generate_content(
+            model=MODEL_ID,
+            contents=prompt,
+            config=config
+        )
+        text = clean_markdown(response.text)
+        data = json.loads(text)
+        
+        # Extract video ID from URL for thumbnail if needed
+        if "v=" in data.get("url", ""):
+            video_id = data["url"].split("v=")[1].split("&")[0]
+            data["id"] = video_id
+            if not data.get("thumbnail") or "placeholder" in data["thumbnail"]:
+                data["thumbnail"] = f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
+        else:
+            data["id"] = None
+            
+        return data
+    except Exception as e:
+        print(f"Gemini Video Search Error: {e}")
+        return None
 
 async def get_chapter_content(chapter_name, user_context):
     if not client: return {"error": "API Key Missing"}

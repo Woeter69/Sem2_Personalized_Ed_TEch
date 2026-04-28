@@ -149,9 +149,9 @@ const ChapterView: React.FC = () => {
             </div>
           ) : (
             <div className="card" style={{ padding: '1rem', border: '1px solid #ef4444', marginBottom: '2rem' }}>
-              <h3 style={{ color: '#ef4444', margin: '0 0 0.5rem 0' }}>Video Not Available</h3>
-              <p>Error: {data.video?.title || "Unknown error"}. Please check your YOUTUBE_API_KEY and the console for details.</p>
-              <a href={data.video?.url} target="_blank" rel="noreferrer" className="btn" style={{ background: '#334155', width: 'fit-content' }}>Search on YouTube</a>
+              <h3 style={{ color: '#ef4444', margin: '0 0 0.5rem 0' }}>Video Recommendation</h3>
+              <p>{data.video?.title || "We couldn't find a specific video for this chapter right now."}</p>
+              <a href={data.video?.url} target="_blank" rel="noreferrer" className="btn" style={{ background: '#334155', width: 'fit-content' }}>View on YouTube</a>
             </div>
           )}
 

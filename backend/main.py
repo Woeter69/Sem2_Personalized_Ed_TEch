@@ -7,7 +7,7 @@ from jose import JWTError, jwt
 import bcrypt
 from typing import List, Optional
 
-from . import models, schemas, database, ai_service, youtube_service
+from . import models, schemas, database, ai_service
 from .database import engine, get_db
 import asyncio
 import os
@@ -152,18 +152,18 @@ async def get_chapter_details(chapter_name: str, current_user: models.User = Dep
     
     # Concurrent Execution
     content_task = ai_service.get_chapter_content(chapter_name, user_context)
-    yt_task = asyncio.to_thread(youtube_service.search_youtube_videos, f"{chapter_name} class 10 maths {user_context['preferred_teachers']}")
+    yt_task = ai_service.get_video_recommendation(chapter_name, preferred_teachers=user_context['preferred_teachers'])
     
     content, yt_video = await asyncio.gather(content_task, yt_task)
     
-    if yt_video and not yt_video.get("error"):
+    if yt_video:
         video_data = {
-            "id": yt_video["id"], "title": yt_video["title"], "url": yt_video["url"],
-            "thumbnail": yt_video["thumbnail"], "channel": yt_video["channel"]
+            "id": yt_video.get("id"), "title": yt_video.get("title"), "url": yt_video.get("url"),
+            "thumbnail": yt_video.get("thumbnail"), "channel": yt_video.get("channel", "YouTube")
         }
     else:
         video_data = {
-            "id": None, "title": yt_video.get("error", f"No video found for {chapter_name}"),
+            "id": None, "title": f"Search results for {chapter_name}",
             "url": f"https://www.youtube.com/results?search_query={chapter_name}+class+10+maths",
             "thumbnail": "https://via.placeholder.com/320x180?text=No+Thumbnail", "channel": "YouTube Search"
         }
@@ -193,8 +193,8 @@ async def get_ai_recommendations(current_user: models.User = Depends(get_current
     dna = current_user.learning_dna
     interests = current_user.interests
 
-    # Optimized Query Generation
-    queries = await ai_service.get_personalized_recommendations(
+    # Optimized Query Generation - Now returns direct URLs
+    recommendations = await ai_service.get_personalized_recommendations(
         user_profile=profile,
         interests=interests.hobbies if interests else "General",
         weak_chapters=", ".join(weak_chapters) if weak_chapters else "None",
@@ -202,23 +202,21 @@ async def get_ai_recommendations(current_user: models.User = Depends(get_current
         learning_speed=dna.learning_speed if dna else "Moderate"
     )
     
-    # Concurrent YouTube searches
-    yt_tasks = [asyncio.to_thread(youtube_service.search_youtube_videos, q.get('title', '')) for q in queries]
-    yt_results = await asyncio.gather(*yt_tasks)
-    
     final_recs = []
-    for idx, yt_data in enumerate(yt_results):
-        q = queries[idx]
-        if yt_data and not yt_data.get("error"):
-            final_recs.append({
-                "id": yt_data["id"], "title": yt_data["title"], "url": yt_data["url"], "thumbnail": yt_data["thumbnail"],
-                "channel": yt_data["channel"], "reason": q.get("reason", "")
-            })
-        else:
-            final_recs.append({
-                "id": None, "title": yt_data.get("error", q.get("title", "No video found")), "url": q.get("url", "#"),
-                "thumbnail": "https://via.placeholder.com/120x90?text=No+Thumbnail", "channel": "Search Result"
-            })
+    for rec in recommendations:
+        url = rec.get('url', '#')
+        video_id = None
+        if "v=" in url:
+            video_id = url.split("v=")[1].split("&")[0]
+        
+        final_recs.append({
+            "id": video_id,
+            "title": rec.get('title', 'Recommended Video'),
+            "url": url,
+            "thumbnail": rec.get('thumbnail') or (f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg" if video_id else "https://via.placeholder.com/120x90?text=No+Thumbnail"),
+            "channel": rec.get('channel', 'YouTube'),
+            "reason": rec.get('reason', '')
+        })
     return final_recs
 
 @app.post("/chat/")

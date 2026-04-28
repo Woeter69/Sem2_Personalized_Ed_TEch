@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased] - 2026-04-28
+
+### Changed
+- **Gemini-Powered Video Links**: Replaced YouTube Data API with Gemini 2.0 Flash and Google Search grounding for video recommendations.
+- **Improved Reliability**: Resolved SSL protocol errors (`EOF occurred in violation of protocol`) by eliminating direct YouTube API calls.
+- **Frontend Cleanup**: Removed outdated YouTube API key error messages and improved UI for video recommendations.
+
+### Removed
+- Removed `backend/youtube_service.py` and `google-api-python-client` dependency.
+
 ## [Unreleased] - 2026-03-16
 
 ### Fixed
